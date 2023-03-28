@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+xmlns="http://www.concrete5.org/doctrine-xml/0.5"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.concrete5.org/doctrine-xml/0.5 http://concrete5.github.io/doctrine-xml/doctrine-xml-0.5.xsd">
+
+<table name="btOunziwosmmap">
+    <field name="bID" type="integer">
+        <unsigned/>
+        <key/>
+    </field>
+    <field name="width" type="string" size="8">
+        <default value="100%" />
+    </field>
+    <field name="height" type="string" size="8">
+        <default value="400px" />
+    </field>
+    <field name="latitude" type="float" />
+    <field name="longitude" type="float" />
+    <field name="zoom" type="smallint" />
+    <field name="marker" type="boolean">
+        <default value="0" />
+    </field>
+    <field name="expert" type="boolean">
+        <default value="0" />
+    </field>
+    <field name="markerlatitude" type="float" />
+    <field name="markerlongitude" type="float" />
+    <field name="message" type="string" size="1000"/>
+
+    <field name="zindex" type="boolean">
+        <default value="0" />
+    </field>
+    <field name="zindexval" type="smallint" />
+</table>
+
+</schema>

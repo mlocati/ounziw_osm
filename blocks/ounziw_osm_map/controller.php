@@ -57,10 +57,10 @@ class Controller extends BlockController
         // load leaflet js/css
         $al = AssetList::getInstance();
         $al->register(
-            'javascript', 'leaflet', 'js/leaflet.min.js', array('position'=>Asset::ASSET_POSITION_HEADER, 'version' => '1.2.0'), 'ounziw_osm'
+            'javascript', 'leaflet', 'js/leaflet.js', array('position'=>Asset::ASSET_POSITION_HEADER, 'version' => '1.9.3'), 'ounziw_osm'
         );
         $al->register(
-            'css', 'leaflet', 'css/leaflet.min.css', array('version' => '1.2.0'), 'ounziw_osm'
+            'css', 'leaflet', 'css/leaflet.css', array('version' => '1.9.3'), 'ounziw_osm'
         );
     }
 

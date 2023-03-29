@@ -1,0 +1,26 @@
+{
+    "name": "ounziw/ounziw_osm",
+    "description": "Concrete package to display maps using OpenStreetMap",
+    "type": "concrete5-package",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Fumito Mizuno"
+        }
+    ],
+    "minimum-stability": "stable",
+    "homepage": "https://github.com/ounziw/Free-Map",
+    "keywords": [
+        "concrete",
+        "cms",
+        "concrete5",
+        "map",
+        "openstreetmap",
+        "osm",
+        "free"
+    ],
+    "support": {
+        "source": "https://github.com/ounziw/Free-Map",
+        "issues": "https://github.com/ounziw/Free-Map/issues"
+    }
+}

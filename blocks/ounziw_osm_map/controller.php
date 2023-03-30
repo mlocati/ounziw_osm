@@ -39,29 +39,35 @@ class Controller extends BlockController
         // block identifier
         $this->set('unique_identifier', $this->app->make('helper/validation/identifier')->getString(18));
 
-        // load leaflet js/css
         $al = AssetList::getInstance();
-        $al->register(
-            'javascript',
-            'leaflet',
-            'js/leaflet.js',
-            ['position' => Asset::ASSET_POSITION_HEADER, 'version' => '1.9.3'],
-            'ounziw_osm'
-        );
-        $al->register(
-            'css',
-            'leaflet',
-            'css/leaflet.css',
-            ['version' => '1.9.3'],
-            'ounziw_osm'
-        );
+        if (!$al->getAssetGroup('leaflet')) {
+            // load leaflet js/css
+            $leafletVersion = '1.9.3';
+            $al->register(
+                'javascript',
+                'leaflet',
+                'js/leaflet.js',
+                ['position' => Asset::ASSET_POSITION_HEADER, 'version' => $leafletVersion],
+                'ounziw_osm'
+            );
+            $al->register(
+                'css',
+                'leaflet',
+                'css/leaflet.css',
+                ['version' => $leafletVersion],
+                'ounziw_osm'
+            );
+            $al->registerGroup('leaflet', [
+                ['javascript', 'leaflet'],
+                ['css', 'leaflet']
+            ]);
+        }
     }
 
     public function registerViewAssets($outputContent = '')
     {
         $this->requireAsset('javascript', 'jquery');
-        $this->requireAsset('css', 'leaflet');
-        $this->requireAsset('javascript', 'leaflet');
+        $this->requireAsset('leaflet');
     }
 
     public function validate($args)

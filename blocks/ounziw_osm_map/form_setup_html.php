@@ -1,4 +1,5 @@
-<?php defined( 'C5_EXECUTE' ) or die( "Access Denied." );
+<?php
+defined('C5_EXECUTE') or die('Access Denied.');
 ?>
 <style>
     .col-12, .col-2, .col-3, .col-4, .col-9 {
@@ -37,7 +38,7 @@
         <div class="col-12">
             <div id="mapedit<?php echo $unique_identifier ?>" class="mapedit"></div>
             <div class="gpsbtn">
-                <button class="btn btn-primary applygps"><?php echo t( "Apply current location using GPS" ); ?></button>
+                <button class="btn btn-primary applygps"><?php echo t('Apply current location using GPS'); ?></button>
                 <span id="err_msg"></span>
             </div>
         </div>
@@ -45,67 +46,67 @@
 </div>
 <div class="mapdetail">
     <div class="form-group">
-		<?php echo $form->label( 'width', t( 'width' ) ) ?>
-		<?php echo $form->text( 'width', $width, [ 'maxlength' => 8 ] ) ?>
+        <?php echo $form->label('width', t('width')) ?>
+        <?php echo $form->text('width', $width, ['maxlength' => 8]) ?>
     </div>
     <div class="form-group">
-		<?php echo $form->label( 'height', t( 'height' ) ) ?>
-		<?php echo $form->text( 'height', $height, [ 'maxlength' => 8 ] ) ?>
+        <?php echo $form->label('height', t('height')) ?>
+        <?php echo $form->text('height', $height, ['maxlength' => 8]) ?>
     </div>
     <div class="form-group">
-		<?php echo $form->label( 'marker', t( 'Marker' ) ) ?>
-		<?php echo $form->checkbox( 'marker', 1, $marker ) ?><?php echo t( 'Display a Marker' ); ?>
+        <?php echo $form->label('marker', t('Marker')) ?>
+        <?php echo $form->checkbox('marker', 1, $marker) ?><?php echo t('Display a Marker'); ?>
     </div>
     <div class="form-group">
-		<?php echo $form->label( 'message', t( 'Message' ) . t( '(max 1000 chars)' ) ) ?>
-		<?php echo $form->textarea( 'message', $message, [ 'col' => 4, 'maxlength' => 1000 ] ) ?>
+        <?php echo $form->label('message', t('Message') . t('(max 1000 chars)')) ?>
+        <?php echo $form->textarea('message', $message, ['col' => 4, 'maxlength' => 1000]) ?>
     </div>
     <div class="form-group">
-		<?php echo $form->label( 'zindex', t( 'z-index' ) ) ?>
-		<?php echo $form->checkbox( 'zindex', 1, $zindex ) ?><?php echo t( 'Manually sets z-index value' ); ?>
+        <?php echo $form->label('zindex', t('z-index')) ?>
+        <?php echo $form->checkbox('zindex', 1, $zindex) ?><?php echo t('Manually sets z-index value'); ?>
     </div>
     <div class="form-group">
-		<?php echo $form->label( 'zindexval', t( 'Z-index Value' ) ) ?>
-		<?php echo $form->number( 'zindexval', $zindexval, [ 'min' => -2147483647, 'max' => 2147483647, 'step' => 1 ] ) ?>
+        <?php echo $form->label('zindexval', t('Z-index Value')) ?>
+        <?php echo $form->number('zindexval', $zindexval, ['min' => -2147483647, 'max' => 2147483647, 'step' => 1]) ?>
     </div>
     <div class="form-group">
-		<?php echo $form->label( 'expert', t( 'Expert Mode' ) ) ?>
-		<?php echo $form->checkbox( 'expert', 1, $expert ) ?><?php echo t( 'Display lat/lng values' ); ?>
+        <?php echo $form->label('expert', t('Expert Mode')) ?>
+        <?php echo $form->checkbox('expert', 1, $expert) ?><?php echo t('Display lat/lng values'); ?>
     </div>
-    <div class="form-group expert<?php if ( ! $expert ) {
-		echo ' d-none';
-	} ?>">
-		<?php echo $form->label( 'latitude', t( 'Latitude' ) ) ?>
-		<?php echo $form->text( 'latitude', $latitude, [ 'maxlength' => 20 ] ) ?>
+    <div class="form-group expert<?php if (!$expert) {
+        echo ' d-none';
+    } ?>">
+        <?php echo $form->label('latitude', t('Latitude')) ?>
+        <?php echo $form->text('latitude', $latitude, ['maxlength' => 20]) ?>
     </div>
-    <div class="form-group expert<?php if ( ! $expert ) {
-		echo ' d-none';
-	} ?>">
-		<?php echo $form->label( 'longitude', t( 'Longitude' ) ) ?>
-		<?php echo $form->text( 'longitude', $longitude, [ 'maxlength' => 20 ] ) ?>
+    <div class="form-group expert<?php if (!$expert) {
+        echo ' d-none';
+    } ?>">
+        <?php echo $form->label('longitude', t('Longitude')) ?>
+        <?php echo $form->text('longitude', $longitude, ['maxlength' => 20]) ?>
     </div>
-    <div class="form-group expert<?php if ( ! $expert ) {
-		echo ' d-none';
-	} ?>">
-		<?php echo $form->label( 'zoom', t( 'Zoom' ) ) ?>
-		<?php echo $form->number( 'zoom', $zoom, [ 'min' => 1, 'max' => 21, 'step' => 1 ] ) ?>
+    <div class="form-group expert<?php if (!$expert) {
+        echo ' d-none';
+    } ?>">
+        <?php echo $form->label('zoom', t('Zoom')) ?>
+        <?php echo $form->number('zoom', $zoom, ['min' => 1, 'max' => 21, 'step' => 1]) ?>
     </div>
-    <div class="form-group expert<?php if ( ! $expert ) {
-		echo ' d-none';
-	} ?>">
-		<?php echo $form->label( 'markerlatitude', t( 'Marker lat.' ) ) ?>
-		<?php echo $form->text( 'markerlatitude', $markerlatitude, [ 'maxlength' => 20 ] ) ?>
+    <div class="form-group expert<?php if (!$expert) {
+        echo ' d-none';
+    } ?>">
+        <?php echo $form->label('markerlatitude', t('Marker lat.')) ?>
+        <?php echo $form->text('markerlatitude', $markerlatitude, ['maxlength' => 20]) ?>
     </div>
-    <div class="form-group expert<?php if ( ! $expert ) {
-		echo ' d-none';
-	} ?>">
-		<?php echo $form->label( 'markerlongitude', t( 'Marker lng.' ) ) ?>
-		<?php echo $form->text( 'markerlongitude', $markerlongitude, [ 'maxlength' => 20 ] ) ?>
+    <div class="form-group expert<?php if (!$expert) {
+        echo ' d-none';
+    } ?>">
+        <?php echo $form->label('markerlongitude', t('Marker lng.')) ?>
+        <?php echo $form->text('markerlongitude', $markerlongitude, ['maxlength' => 20]) ?>
     </div>
-    <div class="form-group expert<?php if ( ! $expert ) {
-		echo ' d-none';
-	} ?>">
-        <button class="btn btn-primary commit"><?php echo t( 'Commit to MAP' ); ?></button>
+    <div class="form-group expert<?php if (!$expert) {
+        echo ' d-none';
+    } ?>">
+        <button class="btn btn-primary commit"><?php echo t('Commit to MAP'); ?></button>
     </div>
 </div>
 <script>
@@ -214,7 +215,7 @@
                 if (location.protocol == 'https:') {
                     navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
                 } else {
-                    err_msg = "<?php echo t( 'Https required for accessing your location information.' );?>";
+                    err_msg = "<?php echo t('Https required for accessing your location information.'); ?>";
                     $("#err_msg").text(err_msg);
                 }
             });
@@ -232,13 +233,13 @@
                 var err_msg = "";
                 switch (error.code) {
                     case 1:
-                        err_msg = "<?php echo t( 'Location access is not allowed.' );?>";
+                        err_msg = "<?php echo t('Location access is not allowed.'); ?>";
                         break;
                     case 2:
-                        err_msg = "<?php echo t( 'Current position is not obtained.' );?>";
+                        err_msg = "<?php echo t('Current position is not obtained.'); ?>";
                         break;
                     case 3:
-                        err_msg = "<?php echo t( 'Timed out.' );?>";
+                        err_msg = "<?php echo t('Timed out.'); ?>";
                         break;
                 }
                 $("#err_msg").text(err_msg);

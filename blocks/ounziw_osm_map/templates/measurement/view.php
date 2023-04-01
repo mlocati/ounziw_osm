@@ -78,7 +78,7 @@ if ($c->isEditMode()) {
                     [point, point1],
                     {paddingTopLeft:[0,20]}
                 );
-    
+
                 var currentPosition = L.icon({
                     iconUrl: '<?php echo $package_path; ?>images/current-position.png',
                     iconSize: [32, 32],
@@ -88,7 +88,7 @@ if ($c->isEditMode()) {
                     point1, {icon: currentPosition}
                 ).addTo(map);
             }
-    
+
             function ounziw_osm_errorCallback(error) {
                 var err_msg = "";
                 switch(error.code)

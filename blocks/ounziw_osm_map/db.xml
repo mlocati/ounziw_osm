@@ -9,27 +9,39 @@
             <key />
         </field>
         <field name="width" type="string" size="8">
-            <default value="100%" />
+            <notnull />
         </field>
         <field name="height" type="string" size="8">
-            <default value="400px" />
+            <notnull />
         </field>
-        <field name="latitude" type="float" />
-        <field name="longitude" type="float" />
-        <field name="zoom" type="smallint" />
+        <field name="latitude" type="float">
+            <notnull />
+        </field>
+        <field name="longitude" type="float">
+            <notnull />
+        </field>
+        <field name="zoom" type="smallint">
+            <notnull />
+        </field>
         <field name="marker" type="boolean">
-            <default value="0" />
+            <notnull />
         </field>
         <field name="expert" type="boolean">
-            <default value="0" />
+            <notnull />
         </field>
         <field name="markerlatitude" type="float" />
         <field name="markerlongitude" type="float" />
-        <field name="message" type="string" size="1000" />
+        <field name="message" type="text" />
         <field name="zindex" type="boolean">
-            <default value="0" />
+            <notnull />
         </field>
         <field name="zindexval" type="smallint" />
+        <field name="hideZoomControls" type="boolean">
+            <notnull />
+        </field>
+        <field name="showMyPosition" type="boolean">
+            <notnull />
+        </field>
     </table>
 
 </schema>

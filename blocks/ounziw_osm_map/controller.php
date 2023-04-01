@@ -5,11 +5,23 @@ namespace Concrete\Package\OunziwOsm\Block\OunziwOsmMap;
 use Concrete\Core\Asset\Asset;
 use Concrete\Core\Asset\AssetList;
 use Concrete\Core\Block\BlockController;
+use Concrete\Core\Config\Repository\Repository;
+use Concrete\Core\Editor\LinkAbstractor;
+use Concrete\Core\Error\ErrorList\ErrorList;
+use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Geolocator\GeolocationResult;
+use Concrete\Core\Package\PackageService;
+use Punic\Misc;
 
 class Controller extends BlockController
 {
-    protected $btInterfaceWidth = 400;
+    protected const UNITS = ['%', 'px', 'vw', 'vh', 'em', 'rem', 'vx'];
+
+    protected const ZOOM_MIN = 1;
+
+    protected const ZOOM_MAX = 21;
+
+    protected $btInterfaceWidth = 750;
 
     protected $btInterfaceHeight = 700;
 
@@ -17,7 +29,82 @@ class Controller extends BlockController
 
     protected $btDefaultSet = 'multimedia';
 
-    protected $units = ['px', 'vw', 'vh', 'em', 'rem', 'vx'];
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Block\BlockController::$supportSavingNullValues
+     */
+    protected $supportSavingNullValues = true;
+
+    /**
+     * @var string|null
+     */
+    protected $width;
+
+    /**
+     * @var string|null
+     */
+    protected $height;
+
+    /**
+     * @var float|string|null
+     */
+    protected $latitude;
+
+    /**
+     * @var float|string|null
+     */
+    protected $longitude;
+
+    /**
+     * @var int|string|null
+     */
+    protected $zoom;
+
+    /**
+     * @var bool|int|string|null
+     */
+    protected $marker;
+
+    /**
+     * @var bool|int|string|null
+     */
+    protected $expert;
+
+    /**
+     * @var float|string|null
+     */
+    protected $markerlatitude;
+
+    /**
+     * @var float|string|null
+     */
+    protected $markerlongitude;
+
+    /**
+     * @var string|null
+     */
+    protected $message;
+
+    /**
+     * @var bool|int|string|null
+     */
+    protected $zindex;
+
+    /**
+     * @var int|string|null
+     */
+    protected $zindexval;
+
+    /**
+     * @var bool|int|string|null
+     */
+    protected $hideZoomControls;
+
+    /**
+     * @var bool|int|string|null
+     */
+    protected $showMyPosition;
 
     public function getBlockTypeDescription()
     {
@@ -31,7 +118,31 @@ class Controller extends BlockController
 
     public function add()
     {
-        $this->getLatLng();
+        $this->setInitialPosition();
+        $this->set('width', '100%');
+        $this->set('height', '400px');
+        $this->set('expert', false);
+        $this->set('message', '');
+        $this->set('zindex', false);
+        $this->set('zindexval', 1);
+        $this->set('hideZoomControls', false);
+        $this->set('showMyPosition', false);
+        $this->addOrEdit();
+    }
+
+    public function edit()
+    {
+        $this->addOrEdit();
+    }
+
+    public function view()
+    {
+        $package = $this->app->make(PackageService::class)->getByHandle('ounziw_osm');
+        $this->set('package_path', BASE_URL . $package->getRelativePath());
+        $this->set('tileLayerConfig', $this->app->make(Repository::class)->get('ounziw_osm::leaflet.tileLayer'));
+        if ($this->marker) {
+            $this->set('message', LinkAbstractor::translateFrom($this->message ?? ''));
+        }
     }
 
     public function on_start()
@@ -59,85 +170,53 @@ class Controller extends BlockController
             );
             $al->registerGroup('leaflet', [
                 ['javascript', 'leaflet'],
-                ['css', 'leaflet']
+                ['css', 'leaflet'],
             ]);
         }
     }
 
     public function registerViewAssets($outputContent = '')
     {
-        $this->requireAsset('javascript', 'jquery');
         $this->requireAsset('leaflet');
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Block\BlockController::validate()
+     */
     public function validate($args)
     {
-        $error = $this->app->make('helper/validation/error');
+        $check = $this->normalizeData($args);
 
-        if (!$this->validate_sizeunit($args['width'])) {
-            $error->add(t('Width must be either one of; number, number + unit (px, vw, vh, em, rem, vx, %).'));
-        }
-        if (!$this->validate_sizeunit($args['height'])) {
-            $error->add(t('Height must be either one of; number, number + unit (px, vw, vh, em, rem, vx, %).'));
-        }
-
-        if (trim($args['latitude']) === '' || trim($args['longitude']) === '') {
-            $error->add(t('You must select a valid location.'));
-        }
-        if (!is_numeric($args['latitude'])) {
-            $error->add(t('Latitude must be a floating number.'));
-        }
-        if (!is_numeric($args['longitude'])) {
-            $error->add(t('Longitude must be a floating number.'));
-        }
-
-        if (!is_numeric($args['zoom'])) {
-            $error->add(t('Please enter a zoom number from 1 to 21.'));
-        }
-
-        if ($args['marker']) {
-            if (mb_strlen($args['message']) > 1000) {
-                $error->add(t('Message must be at most 1000 chars.'));
-            }
-            if (trim($args['markerlatitude']) === '' || trim($args['markerlongitude']) === '') {
-                $error->add(t('You must select a valid location for the marker.'));
-            }
-
-            if (!is_numeric($args['markerlatitude'])) {
-                $error->add(t('MarkerLatitude must be a floating number.'));
-            }
-            if (!is_numeric($args['markerlongitude'])) {
-                $error->add(t('Marker Longitude must be a floating number.'));
-            }
-        }
-        if ($args['zindex']) {
-            if (!is_numeric($args['zindexval'])) {
-                $error->add(t('zindexval must be a integer.'));
-            }
-        }
-
-        return $error;
+        return is_array($check) ? null : $check;
     }
 
-    public function save($data)
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Block\BlockController::save()
+     */
+    public function save($args)
     {
-        $args['width'] = isset($data['width']) ? trim($data['width']) : '';
-        $args['height'] = isset($data['height']) ? trim($data['height']) : '';
-        $args['zoom'] = ((int) ($data['zoom']) >= 1 && (int) ($data['zoom']) <= 21) ? (int) ($data['zoom']) : 14;
-        $args['latitude'] = is_numeric($data['latitude']) ? $data['latitude'] : 0;
-        $args['longitude'] = is_numeric($data['longitude']) ? $data['longitude'] : 0;
-        $args['marker'] = $data['marker'] ? 1 : 0;
-        $args['expert'] = $data['expert'] ? 1 : 0;
-        $args['markerlatitude'] = is_numeric($data['markerlatitude']) ? $data['markerlatitude'] : 0;
-        $args['markerlongitude'] = is_numeric($data['markerlongitude']) ? $data['markerlongitude'] : 0;
-        $args['message'] = isset($data['message']) ? trim($data['message']) : '';
-        $args['zindex'] = $data['zindex'] ? 1 : 0;
-        $args['zindexval'] = is_numeric($data['zindexval']) ? $data['zindexval'] : 0;
-
-        parent::save($args);
+        $check = $this->normalizeData($args);
+        if (!is_array($check)) {
+            throw (new UserMessageException((string) $check))->setMessageContainsHtml();
+        }
+        parent::save($check);
     }
 
-    protected function getLatLng()
+    protected function addOrEdit()
+    {
+        $this->requireAsset('javascript', 'jquery');
+        $this->set('editor', $this->app->make('editor'));
+        $this->set('zoomMin', static::ZOOM_MIN);
+        $this->set('zoomMax', static::ZOOM_MAX);
+        $this->set('message', LinkAbstractor::translateFromEditMode($this->message ?? ''));
+        $this->set('tileLayerConfig', $this->app->make(Repository::class)->get('ounziw_osm::leaflet.tileLayer'));
+    }
+
+    protected function setInitialPosition()
     {
         $geolocated = $this->app->make(GeolocationResult::class);
         if ($geolocated && (abs($geolocated->getLatitude()) > 0.00001 || abs($geolocated->getLongitude()) > 0.00001)) {
@@ -151,30 +230,95 @@ class Controller extends BlockController
         }
         $this->set('latitude', $data_lat);
         $this->set('longitude', $data_lng);
-        $this->set('marker', 1);
+        $this->set('marker', true);
         $this->set('markerlatitude', $data_lat);
         $this->set('markerlongitude', $data_lng);
     }
 
-    protected function validate_sizeunit($data)
+    /**
+     * @param string|mixed $data
+     *
+     * @return string empty string in case of errors
+     */
+    protected function validateValueWithUnit($data)
     {
-        $valid = false;
-        if (trim($data) === '') {
-            $valid = false;
-        } elseif (substr($data, -1) === '%') {
-            if (strlen($data) - 1 === strspn($data, '0123456789')) {
-                $valid = true;
+        $data = is_string($data) ? trim($data) : '';
+        if ($data === '') {
+            return '';
+        }
+        $matches = null;
+        if (!preg_match('/^(?<value>(0?\.[0-9]+|[0-9]+))\s*(?<unit>[^0-9\s]\w*)?$/', $data, $matches)) {
+            return '';
+        }
+        $unit = strtolower($matches['unit'] ?? '');
+        if ($unit === '') {
+            return "{$matches['value']}px";
+        }
+        if (!in_array($unit, self::UNITS, true)) {
+            return '';
+        }
+
+        return "{$matches['value']}{$unit}";
+    }
+
+    /**
+     * Check and normalize the block data.
+     *
+     * @param array|mixed $data
+     *
+     * @return array|\Concrete\Core\Error\ErrorList\ErrorList returns an array if everything is ok, the errors otherwise
+     */
+    protected function normalizeData($data)
+    {
+        if (!is_array($data)) {
+            $data = [];
+        }
+        $errors = $this->app->make(ErrorList::class);
+        $result = [
+            'width' => $this->validateValueWithUnit($data['width'] ?? ''),
+            'height' => $this->validateValueWithUnit($data['height'] ?? ''),
+            'marker' => empty($data['marker']) ? 0 : 1,
+            'zindex' => empty($data['zindex']) ? 0 : 1,
+            'hideZoomControls' => empty($data['hideZoomControls']) ? 0 : 1,
+            'showMyPosition' => empty($data['showMyPosition']) ? 0 : 1,
+            'expert' => empty($data['expert']) ? 0 : 1,
+            'message' => is_string($data['message'] ?? null) ? LinkAbstractor::translateTo(trim($data['message'])) : '',
+            'zindexval' => is_numeric($data['zindexval'] ?? null) ? (int) $data['zindexval'] : null,
+            'zoom' => is_numeric($data['zoom'] ?? null) ? (int) $data['zoom'] : null,
+            'latitude' => is_numeric($data['latitude'] ?? null) ? (float) $data['latitude'] : null,
+            'longitude' => is_numeric($data['longitude'] ?? null) ? (float) $data['longitude'] : null,
+            'markerlatitude' => is_numeric($data['markerlatitude'] ?? null) ? (float) $data['markerlatitude'] : null,
+            'markerlongitude' => is_numeric($data['markerlongitude'] ?? null) ? (float) $data['markerlongitude'] : null,
+        ];
+        if ($result['width'] === '') {
+            $errors->add(t('The width width must be either a number, or a number followed by: %s', Misc::joinOr(self::UNITS)));
+        }
+        if ($result['height'] === '') {
+            $errors->add(t('The height must be either a number, or a number followed by: %s', Misc::joinOr(self::UNITS)));
+        }
+        if ($result['zindex'] === 1) {
+            if ($result['zindexval'] === null) {
+                $errors->add(t('The z-index value must be an integer number.'));
             }
-        } elseif (in_array(substr($data, -2), $this->units)) {
-            if (strlen($data) - 2 === strspn($data, '0123456789')) {
-                $valid = true;
+        }
+        if ($result['latitude'] === null) {
+            $errors->add(t('The latitude must be a floating number.'));
+        }
+        if ($result['longitude'] === null) {
+            $errors->add(t('The longitude must be a floating number.'));
+        }
+        if ($result['zoom'] === null || $result['zoom'] < static::ZOOM_MIN || $result['zoom'] > static::ZOOM_MAX) {
+            $errors->add(t('The zoom level must be a number between %1%s and %2$s.', self::ZOOM_MIN, self::ZOOM_MAX));
+        }
+        if ($result['marker'] === 1) {
+            if ($result['markerlatitude'] === null) {
+                $errors->add(t('The marker latitude must be a floating number.'));
             }
-        } else { // number only. It will treated as XXXpx, by adding px in view.php
-            if (strlen($data) === strspn($data, '0123456789')) {
-                $valid = true;
+            if ($result['markerlongitude'] === null) {
+                $errors->add(t('The marker longitude must be a floating number.'));
             }
         }
 
-        return $valid;
+        return $errors->has() ? $errors : $result;
     }
 }

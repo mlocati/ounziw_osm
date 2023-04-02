@@ -64,7 +64,7 @@ $lngPrecision = 6; // about 0.1 meter at the equator
 <div class="form-group">
     <div class="form-check">
         <?= $form->checkbox('marker', 1, $marker) ?>
-        <?= $form->label('marker', t('Display a Marker')) ?>
+        <?= $form->label('marker', t('Display a marker')) ?>
     </div>
     <div class="form-check">
         <?= $form->checkbox('zindex', 1, $zindex) ?>
@@ -115,13 +115,13 @@ $lngPrecision = 6; // about 0.1 meter at the equator
     <div class="row marker-hide">
         <div class="col">
             <div class="form-group">
-                <?= $form->label('markerlatitude', t('Marker lat.')) ?>
+                <?= $form->label('markerlatitude', t('Marker Latitude')) ?>
                 <?= $form->number('markerlatitude', $markerlatitude, ['min' => -90, 'max' => 90, 'step' => '0.' . str_repeat('0', $latPrecision - 1) . '1']) ?>
             </div>
         </div>
         <div class="col">
             <div class="form-group">
-                <?= $form->label('markerlongitude', t('Marker lng.')) ?>
+                <?= $form->label('markerlongitude', t('Marker Longitude')) ?>
                 <?= $form->number('markerlongitude', $markerlongitude, ['min' => -180, 'max' => 180, 'step' => '0.' . str_repeat('0', $lngPrecision - 1) . '1']) ?>
             </div>
         </div>

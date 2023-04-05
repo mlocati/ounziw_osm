@@ -5,7 +5,13 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Fumito Mizuno"
+            "name": "Fumito Mizuno",
+            "role": "Author"
+        },
+        {
+            "name": "Michele Locati",
+            "email": "michele@locati.it",
+            "role": "Contributor"
         }
     ],
     "minimum-stability": "stable",

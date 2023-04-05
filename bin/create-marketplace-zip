@@ -1,0 +1,257 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+const CLEANUP_FILES = [
+    // Remove composer.json because it's needed only when installing the package with Composer
+    'composer.json',
+    // Remove LICENSE.TXT because the Concrete Marketplace adds its own
+    'LICENSE.TXT',
+];
+
+/**
+ * @var string $argv
+ */
+
+set_error_handler(static function(int $errno, string $errstr, string $errfile = '', ?int $errline = null, array $errcontext = []): void {
+    $message = $errstr;
+    if ($message === '') {
+        $message = "Error {$errno}";
+    }
+    if ($errfile !== '') {
+        $message .= "\nFile: {$errfile}";
+        if ($errline) {
+            $message .= "\nLine: {$errline}";
+        }
+    }
+    throw new RuntimeException($message);
+}, -1);
+
+function main(array $args): void
+{
+    checkSapi();
+    $rootDir = rtrim(str_replace('/', DIRECTORY_SEPARATOR, realpath(__DIR__ . '/..')), DIRECTORY_SEPARATOR);
+    checkGit($rootDir);
+    $packageInfo = new PackageInfo($rootDir);
+    $zipFile = exportZip($rootDir, $packageInfo);
+    try {
+        cleanupZip($zipFile, $packageInfo);
+    } catch (Throwable $x) {
+        try {
+            unlink($zipFile);
+        } catch (Throwable $_) {
+        }
+        throw $x;
+    }
+    echo "ZIP archive created:\n{$zipFile}\n";
+}
+
+function checkSapi(): void
+{
+    if (PHP_SAPI !== 'cli' && PHP_SAPI !== 'phpdbg') {
+        throw new RuntimeException('This script is meant to be executed in a CLI environment.');
+    }
+}
+
+class PackageInfo
+{
+    /**
+     * @var string
+     * @readonly
+     */
+    public $handle;
+    /**
+     * @var string
+     * @readonly
+     */
+    public $version;
+
+    public function __construct(string $rootDir)
+    {
+        $tokens = $this->readControllerTokens($rootDir);
+        [$classBodyStart, $classBodyEnd] = $this->determineClassBodyRange($tokens);
+        $this->handle = $this->extractStringProperty('pkgHandle', $tokens, $classBodyStart, $classBodyEnd);
+        $this->version = $this->extractStringProperty('pkgVersion', $tokens, $classBodyStart, $classBodyEnd);
+    }
+
+    private function readControllerTokens(string $rootDir): array
+    {
+        $controllerFile = $rootDir . '/controller.php';
+        if (!is_file($controllerFile)) {
+            throw new RuntimeException("File not found:\n{$controllerFile}");
+        }
+        $code = file_get_contents($controllerFile);
+        if (!$code) {
+            throw new RuntimeException("Failed to read file\n{$controllerFile}");
+        }
+        return token_get_all($code);
+    }
+
+    private function determineClassBodyRange(array $tokens): array
+    {
+        $classStart = null;
+        $previousToken = null;
+        foreach ($tokens as $index => $token) {
+            if (is_array($token) && $token[0] === T_CLASS) {
+                if (!is_array($previousToken) || $previousToken[0] !== T_DOUBLE_COLON) {
+                    if ($classStart !== null) {
+                        throw new RuntimeException('Multiple "class" tokens found in package controller');
+                    }
+                    $classStart = $index;
+                }
+            }
+            $previousToken = $token;
+        }
+        if ($classStart === null) {
+            throw new RuntimeException('No "class" tokens found in package controller');
+        }
+        $numTokens = count($tokens);
+        $classBodyStartsAt = null;
+        $classBodyEndsAt = null;
+        $depth = 0;
+        for ($index = $classStart + 1; $index < $numTokens; $index++) {
+            $token = $tokens[$index];
+            if ($token === '{') {
+                if ($depth === 0) {
+                    if ($classBodyStartsAt !== null) {
+                        throw new RuntimeException('Multiple opening "{" tokens found in package controller');
+                    }
+                    $classBodyStartsAt = $index;
+                }
+                $depth++;
+            } elseif ($token === '}') {
+                if ($depth === 0) {
+                    throw new RuntimeException('Unmatched closing "}" token found in package controller');
+                }
+                $depth--;
+                if ($depth === 0) {
+                    $classBodyEndsAt = $index;
+                    break;
+                }
+            }
+        }
+        if ($classBodyEndsAt === null) {
+            throw new RuntimeException('Failed to detect the class body');
+        }
+        return [$classBodyStartsAt + 1, $classBodyEndsAt - 1];
+    }
+
+    private function extractStringProperty(string $name, array $tokens, int $classBodyStart, int $classBodyEnd): string
+    {
+        if ($name[0] !== '$') {
+            $name = '$' . $name;
+        }
+        $depth = 0;
+        for ($index = $classBodyStart; $index <= $classBodyEnd; $index++) {
+            $token = $tokens[$index];
+            if ($token === '{') {
+                $depth++;
+                continue;
+            }
+            if ($token === '}') {
+                if ($depth === 0) {
+                    throw new RuntimeException('Unmatched closing "}" token found in package controller');
+                }
+                $depth--;
+                continue;
+            }
+            if ($depth !== 0) {
+                continue;
+            }
+            if (!is_array($token) || $token[0] !== T_VARIABLE || $token[1] !== $name) {
+                continue;
+            }
+            for (;;) {
+                $token = $tokens[++$index] ?? null;
+                if (!is_array($token) || $token[0] !== T_WHITESPACE) {
+                    break;
+                }
+            }
+            if ($token !== '=') {
+                break;
+            }
+            for (;;) {
+                $token = $tokens[++$index] ?? null;
+                if (!is_array($token) || $token[0] !== T_WHITESPACE) {
+                    break;
+                }
+            }
+            if (!is_array($token) || $token[0] !== T_CONSTANT_ENCAPSED_STRING) {
+                break;
+            }
+            return eval('return ' . $token[1] . ';');
+        }
+        throw new RuntimeException("Failed to find the property '{$name}'");
+    }
+}
+
+function runGit(string $rootDir, array $args): string
+{
+    $cmd = 'git';
+    $cmd .= ' -C ' . escapeshellarg($rootDir);
+    $cmd .= ' ' . implode(' ', $args);
+    $cmd .= ' 2>&1';
+    $rc = -1;
+    $output = [];
+    exec($cmd, $output, $rc);
+    if ($rc !== 0) {
+        throw new RuntimeException("Failed to execute the command\n{$cmd}\nError:\n" . trim(implode("\n", $output)));
+    }
+    return trim(implode("\n", $output));
+}
+
+function checkGit(string $rootDir): void
+{
+    if (!is_dir("{$rootDir}/.git")) {
+        throw new RuntimeException('This script is meant to be executed in a GIT clone of the repositoru.');
+    }
+    $output = trim(runGit($rootDir, [
+        'status',
+        '--porcelain',
+    ]));
+    if ($output !== '') {
+        throw new RuntimeException("This command must be executed in a clean GIT repository, but we have these un-committed changes:\n{$output}");
+    }
+}
+
+function exportZip(string $rootDir, PackageInfo $packageInfo): string
+{
+    $zipFile = $rootDir . DIRECTORY_SEPARATOR . "{$packageInfo->handle}-{$packageInfo->version}.zip";
+    runGit($rootDir, [
+        'archive',
+        '--format=zip',
+        '--output=' . escapeshellarg($zipFile),
+        '--prefix=' . escapeshellarg($packageInfo->handle . '/'),
+        'HEAD',
+    ]);
+    return $zipFile;
+}
+
+function cleanupZip(string $path, PackageInfo $packageInfo): void
+{
+    if (CLEANUP_FILES === []) {
+        return;
+    }
+    $cmd = 'zip -d ' . escapeshellarg($path);
+    foreach (CLEANUP_FILES as $file) {
+        $cmd .= ' ' . escapeshellarg($packageInfo->handle . '/' . ltrim(str_replace(DIRECTORY_SEPARATOR, '/', $file), '/'));
+    }
+    $cmd .= ' 2>&1';
+    $rc = -1;
+    $output = [];
+    exec($cmd, $output, $rc);
+    if ($rc !== 0) {
+        throw new RuntimeException("Failed to execute the command\n{$cmd}\nError:\n" . trim(implode("\n", $output)));
+    }
+}
+
+try {
+    main($argv ?? []);
+    return 0;
+} catch (RuntimeException $x) {
+    fwrite(STDERR, trim($x->getMessage()) . "\n");
+    return 1;
+} catch (Throwable $x) {
+    fwrite(STDERR, trim((string) $x) . "\n");
+    return 1;
+}

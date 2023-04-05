@@ -29,3 +29,21 @@ If you want to update leaflet to the most recent version, you need to:
 
 1. Update the NPM dependencies with `npm update`
 2. Execute `npm run prod`
+
+
+## Publish a new version
+
+In order to publish a new version (let's assume `1.2.3` for example):
+
+1. Set the value of the `$pkgVersion` property of the package controller to `1.2.3` 
+2. Commit the changes to GIT
+3. Create a GIT tag:
+   ```sh
+   git tag 1.2.3
+   ```
+4. Push the changes to GitHub (including the tags):
+   ```sh
+   git push --tags
+   ```
+5. Create the ZIP archive to be uploaded to the marketplace by running the `create-marketplace-zip` script in the `bin` directory
+6. Upload the ZIP archive to the [ConcreteCMS marketplace](https://marketplace.concretecms.com/marketplace/addons/free-map) 

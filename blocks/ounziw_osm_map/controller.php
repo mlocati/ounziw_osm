@@ -302,20 +302,20 @@ class Controller extends BlockController
             }
         }
         if ($result['latitude'] === null) {
-            $errors->add(t('The latitude must be a floating number.'));
+            $errors->add(t('The latitude must be a number.'));
         }
         if ($result['longitude'] === null) {
-            $errors->add(t('The longitude must be a floating number.'));
+            $errors->add(t('The longitude must be a number.'));
         }
         if ($result['zoom'] === null || $result['zoom'] < static::ZOOM_MIN || $result['zoom'] > static::ZOOM_MAX) {
-            $errors->add(t('The zoom level must be a number between %1%s and %2$s.', self::ZOOM_MIN, self::ZOOM_MAX));
+            $errors->add(t('The zoom level must be a number between %1$s and %2$s.', self::ZOOM_MIN, self::ZOOM_MAX));
         }
         if ($result['marker'] === 1) {
             if ($result['markerlatitude'] === null) {
-                $errors->add(t('The marker latitude must be a floating number.'));
+                $errors->add(t('The marker latitude must be a number.'));
             }
             if ($result['markerlongitude'] === null) {
-                $errors->add(t('The marker longitude must be a floating number.'));
+                $errors->add(t('The marker longitude must be a number.'));
             }
         }
 
